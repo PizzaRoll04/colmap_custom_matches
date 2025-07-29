@@ -5,14 +5,14 @@ from enum import IntEnum
 import numpy as np
 
 class CalibIdx(IntEnum):
-    FX = 1 - 1
-    FY = 2 - 1
-    CX = 3 - 1 
-    CY = 4 - 1
-    K1 = 5 - 1
-    K2 = 6 - 1
-    K3 = 7 - 1
-    K4 = 8 - 1
+    FX = 0
+    FY = 1
+    CX = 2 
+    CY = 3
+    K1 = 4
+    K2 = 5
+    K3 = 6
+    K4 = 7
 
 def get_k_d(path_calibration:Path):
     with open(path_calibration, "r") as f:
