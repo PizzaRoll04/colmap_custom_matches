@@ -1,4 +1,5 @@
 from extraction import Extractor
+from extraction_gpu import ExtractorGPU
 import argparse
 from pathlib import Path
 from enum import IntEnum
@@ -27,18 +28,17 @@ if __name__ == "__main__":
     parser.add_argument("--input", type=str, required=True, help="Path to input image directory")
     parser.add_argument("--calibration", type=str, required=True, help="Path to calibration text file")
     parser.add_argument("--build_dir", type=str, required=True, help="Path to create output")
+    parser.add_argument("--use_gpu", type=bool, required=False, default=False, help="Bool for using gpu. Will use cpu if false.")
 
     args = parser.parse_args()
     build_dir = Path(args.build_dir)
     input_dir = Path(args.input)
+    use_gpu = args.use_gpu
 
-    extractor = Extractor()
+    extractor = Extractor() if not use_gpu else ExtractorGPU()
     K, D = get_k_d(args.calibration)
     extractor.extract_images(input_dir, K, D)
-    print("extracted images!")
     extractor.write_keypoints(build_dir / "kpts")
-    print("keypoints written!")
-    extractor.write_matches(build_dir / "matches")
-    print("matches written!")
+    extractor.write_matches(build_dir / "matches", min_matches=300)
 
     print("colmap matching extraction complete!")

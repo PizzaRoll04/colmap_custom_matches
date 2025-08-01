@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--dir_matches", type=str, required=True, help="Path to directory of matches")
     parser.add_argument("--path_database", type=str, required=True, help="Path to database.db")
     parser.add_argument("--dir_images", type=str, required=True, help="Path to directory of images")
+    parser.add_argument("--dir_keypoints", type=str, required=True, help="Path to directory of keypoints")
 
     args = parser.parse_args()
 
@@ -36,6 +37,7 @@ def main():
     dir_matches = Path(args.dir_matches)
     path_database = Path(args.path_database)
     dir_images = Path(args.dir_images)
+    dir_kpts = Path(args.dir_keypoints)
     
     connection = sqlite3.connect(path_database)
     cursor = connection.cursor()
@@ -92,6 +94,26 @@ def main():
     for row in cursor:
         images[row[0]] = row[1]
 
+    print(images)
+
+    ### write keypoints to db
+    for file_img_kpts in dir_kpts.glob("*.txt"):
+        keypoints = []
+        with open(file_img_kpts, "r") as f_img_kpts:
+            for line in f_img_kpts:
+                data_line = line.strip().split()
+                if len(data_line):
+                    x, y = float(data_line[0]), float(data_line[1])
+                    keypoints.append([x,y])
+        keypoints = np.array(keypoints, dtype=np.float32)
+        assert keypoints.shape[1] == 2
+        keypoints_bin = keypoints.tobytes()
+        image_id = images[file_img_kpts.name.rstrip(".txt")]
+        cursor.execute(
+            "INSERT INTO keypoints (image_id, rows, cols, data) VALUES (?, ?, ?, ?);",
+            (image_id, keypoints.shape[0], keypoints.shape[1], keypoints_bin)
+        )
+
     ### write matches to db
     image_pairs = []
     with open(path_image_pairs, "r") as f_image_pairs:
@@ -115,11 +137,11 @@ def main():
                 np.array(idxs_img_2, dtype=np.uint32).reshape(-1, 1)
             ))
             assert matches.shape[1] == 2
-            matches_str = matches.tobytes()
+            matches_bit = matches.tobytes()
             print(matches.shape)
             cursor.execute(
                 "INSERT INTO matches (pair_id, rows, cols, data) VALUES (?, ?, ?, ?);",
-                (image_pair_id, matches.shape[0], matches.shape[1], matches_str)
+                (image_pair_id, matches.shape[0], matches.shape[1], matches_bit)
             )
     connection.commit()
 
